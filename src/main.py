@@ -7,8 +7,15 @@ from typing import Optional
 
 import zmq
 
-from .config import load_settings
-from .ha_client import HomeAssistantClient
+# 兼容作为模块运行与脚本直接运行两种方式
+try:
+    from .config import load_settings
+    from .ha_client import HomeAssistantClient
+except ImportError:  # 当以 `python src/main.py` 运行时生效
+    import os
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from config import load_settings  # type: ignore
+    from ha_client import HomeAssistantClient  # type: ignore
 
 
 def configure_logging() -> None:
