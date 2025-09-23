@@ -6,6 +6,7 @@ import sys
 from typing import Optional
 
 import zmq
+import struct
 
 # 兼容作为模块运行与脚本直接运行两种方式
 try:
@@ -52,24 +53,56 @@ def main() -> int:
         poller = zmq.Poller()
         poller.register(socket, zmq.POLLIN)
 
+        ZMQQ_KEYEVENT_ID = 0x07324D6E
+
         while not interrupted:
             events = dict(poller.poll(timeout=1000))  # 1s 轮询，便于优雅退出
             if socket in events and events[socket] == zmq.POLLIN:
                 try:
-                    topic = socket.recv()
-                    payload = socket.recv()
-                except Exception as ex:
-                    logging.exception("接收消息失败: %s", ex)
-                    continue
+                    # 收集同一条消息的所有帧
+                    frames = [socket.recv()]
+                    while socket.getsockopt(zmq.RCVMORE):
+                        frames.append(socket.recv())
 
-                logging.info("收到消息：topic=%s payload=%s", topic, payload)
+                    if not frames:
+                        continue
 
-                if topic == settings.zmq_topic:
+                    header_buf = frames[0]
+                    if len(header_buf) < 8:
+                        logging.warning("收到的首帧长度不足 8 字节，忽略。len=%d", len(header_buf))
+                        continue
+
+                    msg_id, payload_len = struct.unpack('<ii', header_buf[:8])
+                    if msg_id != ZMQQ_KEYEVENT_ID:
+                        logging.debug("忽略未知消息 ID: 0x%08X", msg_id)
+                        continue
+
+                    # 拼接 payload（可能部分在首帧 8 字节之后，剩余在后续帧）
+                    remaining = header_buf[8:]
+                    if len(remaining) >= payload_len:
+                        payload_bytes = remaining[:payload_len]
+                    else:
+                        concat_rest = remaining + b''.join(frames[1:])
+                        if len(concat_rest) < payload_len:
+                            logging.warning("负载长度不足，期望=%d 实际=%d，忽略。", payload_len, len(concat_rest))
+                            continue
+                        payload_bytes = concat_rest[:payload_len]
+
+                    # 日志展示
+                    try:
+                        payload_preview = payload_bytes.decode('utf-8', errors='replace')
+                    except Exception:
+                        payload_preview = payload_bytes.hex()
+                    logging.info("收到 KeyEvent，长度=%d，内容预览=%s", payload_len, payload_preview)
+
+                    # 触发 HA 开灯
                     try:
                         ha.turn_on_light(settings.ha_light_entity_id)
                         logging.info("已请求 HA 打开灯光：%s", settings.ha_light_entity_id)
                     except Exception as ex:
                         logging.exception("调用 HA 失败: %s", ex)
+                except Exception as ex:
+                    logging.exception("接收消息失败: %s", ex)
 
     finally:
         try:

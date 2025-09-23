@@ -46,16 +46,13 @@ def load_settings() -> Settings:
         raise ValueError(
             "Missing required environment variables: " + ", ".join(missing)
         )
-        
-    print(zmq_topic)
-    print(type(zmq_topic))
 
     return Settings(
         ha_base_url=ha_base_url,
         ha_token=ha_token,
         ha_light_entity_id=ha_light_entity_id,
         zmq_sub_endpoint=zmq_sub_endpoint,
-        zmq_topic=str(zmq_topic),
+        zmq_topic=zmq_topic,
     )
 
 
