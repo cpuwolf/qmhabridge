@@ -88,17 +88,30 @@ def main() -> int:
                             continue
                         payload_bytes = concat_rest[:payload_len]
 
-                    # 日志展示
+                    # 按照 C 结构体解码 payload_bytes
+                    isrelease = False
+                    if len(payload_bytes) < 9:
+                        logging.warning("KeyEventData 长度不足 9 字节，忽略。len=%d", len(payload_bytes))
+                        continue
                     try:
-                        payload_preview = payload_bytes.decode('utf-8', errors='replace')
-                    except Exception:
+                        logging.info("收到 KeyEvent，长度=%d，内容=%s", payload_len, payload_preview)
+                        qid, key, isrelease = struct.unpack('<iii', payload_bytes[:12])
+                        payload_preview = f"qid=0x{qid:02X}, key=0x{key:03X}, isrelease={bool(isrelease)}"
+                        if qid != 9 or key != 0x13:
+                            continue
+                    except Exception as ex:
                         payload_preview = payload_bytes.hex()
-                    logging.info("收到 KeyEvent，长度=%d，内容预览=%s", payload_len, payload_preview)
+                        logging.warning("解码 KeyEventData 失败: %s", ex)
+                    
 
                     # 触发 HA 开灯
                     try:
-                        ha.turn_on_light(settings.ha_light_entity_id)
-                        logging.info("已请求 HA 打开灯光：%s", settings.ha_light_entity_id)
+                        if isrelease:
+                            ha.turn_on_light(settings.ha_light_entity_id)
+                            logging.info("已请求 HA 打开灯光：%s", settings.ha_light_entity_id)
+                        else:
+                            ha.turn_off_light(settings.ha_light_entity_id)
+                            logging.info("已请求 HA 关闭灯光：%s", settings.ha_light_entity_id)
                     except Exception as ex:
                         logging.exception("调用 HA 失败: %s", ex)
                 except Exception as ex:

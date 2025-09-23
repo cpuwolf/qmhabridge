@@ -32,4 +32,9 @@ class HomeAssistantClient:
         payload = {"entity_id": entity_id}
         self._post("/api/services/switch/turn_on", json=payload)
 
+    def turn_off_light(self, entity_id: str) -> None:
+        """Call light.turn_off service for given entity."""
+        payload = {"entity_id": entity_id}
+        self._post("/api/services/switch/turn_off", json=payload)
+
 
