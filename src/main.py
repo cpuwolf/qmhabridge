@@ -33,10 +33,10 @@ def main() -> int:
 
     ha = HomeAssistantClient(settings.ha_base_url, settings.ha_token)
 
-    context = zmq.Context.instance()
+    context = zmq.Context()
     socket = context.socket(zmq.SUB)
     socket.connect(settings.zmq_sub_endpoint)
-    socket.setsockopt_string(zmq.SUBSCRIBE, settings.zmq_topic)
+    socket.setsockopt_string(zmq.SUBSCRIBE, "")#settings.zmq_topic)
 
     interrupted: bool = False
 
@@ -56,8 +56,8 @@ def main() -> int:
             events = dict(poller.poll(timeout=1000))  # 1s 轮询，便于优雅退出
             if socket in events and events[socket] == zmq.POLLIN:
                 try:
-                    topic = socket.recv_string()
-                    payload = socket.recv_string() if socket.getsockopt(zmq.RCVMORE) else ""
+                    topic = socket.recv()
+                    payload = socket.recv()
                 except Exception as ex:
                     logging.exception("接收消息失败: %s", ex)
                     continue

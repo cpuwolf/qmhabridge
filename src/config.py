@@ -28,7 +28,7 @@ def load_settings() -> Settings:
     ha_token = os.getenv("HA_TOKEN")
     ha_light_entity_id = os.getenv("HA_LIGHT_ENTITY_ID")
     zmq_sub_endpoint = os.getenv("ZMQ_SUB_ENDPOINT")
-    zmq_topic = os.getenv("ZMQ_TOPIC", "key_event")
+    zmq_topic = os.getenv("ZMQ_TOPIC", "aircraftinfo")
 
     missing: list[str] = []
     if not ha_base_url:
@@ -46,13 +46,16 @@ def load_settings() -> Settings:
         raise ValueError(
             "Missing required environment variables: " + ", ".join(missing)
         )
+        
+    print(zmq_topic)
+    print(type(zmq_topic))
 
     return Settings(
         ha_base_url=ha_base_url,
         ha_token=ha_token,
         ha_light_entity_id=ha_light_entity_id,
         zmq_sub_endpoint=zmq_sub_endpoint,
-        zmq_topic=zmq_topic,
+        zmq_topic=str(zmq_topic),
     )
 
 

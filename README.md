@@ -31,7 +31,7 @@ HA_BASE_URL=http://homeassistant.local:8123
 HA_TOKEN=你的长效访问令牌
 HA_LIGHT_ENTITY_ID=light.living_room
 ZMQ_SUB_ENDPOINT=tcp://127.0.0.1:5556
-ZMQ_TOPIC=key_event
+ZMQ_TOPIC=aircraftinfo
 ```
 
 获取 HA 长效访问令牌：登录 HA 前端 → 用户资料 → 创建长效访问令牌。
@@ -54,7 +54,7 @@ python -m src.main
 - `HA_TOKEN`：HA 长效令牌，作为 `Authorization: Bearer <token>` 使用。
 - `HA_LIGHT_ENTITY_ID`：要控制的灯光实体 ID，如 `light.bedroom`。
 - `ZMQ_SUB_ENDPOINT`：ZMQ 订阅端点，如 `tcp://127.0.0.1:5556`。
-- `ZMQ_TOPIC`：订阅主题过滤，如 `key_event`。
+- `ZMQ_TOPIC`：订阅主题过滤，如 `aircraftinfo`。
 
 ## 日志与退出
 
