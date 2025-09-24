@@ -13,7 +13,6 @@ class Settings:
     ha_token: str
     ha_light_entity_id: str
     zmq_sub_endpoint: str
-    zmq_topic: str
 
 
 def load_settings() -> Settings:
@@ -28,7 +27,6 @@ def load_settings() -> Settings:
     ha_token = os.getenv("HA_TOKEN")
     ha_light_entity_id = os.getenv("HA_LIGHT_ENTITY_ID")
     zmq_sub_endpoint = os.getenv("ZMQ_SUB_ENDPOINT")
-    zmq_topic = os.getenv("ZMQ_TOPIC", "aircraftinfo")
 
     missing: list[str] = []
     if not ha_base_url:
@@ -39,8 +37,6 @@ def load_settings() -> Settings:
         missing.append("HA_LIGHT_ENTITY_ID")
     if not zmq_sub_endpoint:
         missing.append("ZMQ_SUB_ENDPOINT")
-    if not zmq_topic:
-        missing.append("ZMQ_TOPIC")
 
     if missing:
         raise ValueError(
@@ -52,7 +48,6 @@ def load_settings() -> Settings:
         ha_token=ha_token,
         ha_light_entity_id=ha_light_entity_id,
         zmq_sub_endpoint=zmq_sub_endpoint,
-        zmq_topic=zmq_topic,
     )
 
 

@@ -30,14 +30,14 @@ def main() -> int:
     configure_logging()
     settings = load_settings()
 
-    logging.info("启动 ZMQ 订阅：endpoint=%s, topic=%s", settings.zmq_sub_endpoint, settings.zmq_topic)
+    logging.info("启动 ZMQ 订阅：endpoint=%s", settings.zmq_sub_endpoint)
 
     ha = HomeAssistantClient(settings.ha_base_url, settings.ha_token)
 
     context = zmq.Context()
     socket = context.socket(zmq.SUB)
     socket.connect(settings.zmq_sub_endpoint)
-    socket.setsockopt_string(zmq.SUBSCRIBE, "")#settings.zmq_topic)
+    socket.setsockopt_string(zmq.SUBSCRIBE, "")
 
     interrupted: bool = False
 
