@@ -12,6 +12,7 @@ class Settings:
     ha_base_url: str
     ha_token: str
     ha_light_entity_id: str
+    ha_ac_entity_id: str
     zmq_sub_endpoint: str
 
 
@@ -26,6 +27,7 @@ def load_settings() -> Settings:
     ha_base_url = os.getenv("HA_BASE_URL")
     ha_token = os.getenv("HA_TOKEN")
     ha_light_entity_id = os.getenv("HA_LIGHT_ENTITY_ID")
+    ha_ac_entity_id = os.getenv("HA_AC_ENTITY_ID")
     zmq_sub_endpoint = os.getenv("ZMQ_SUB_ENDPOINT")
 
     missing: list[str] = []
@@ -35,6 +37,8 @@ def load_settings() -> Settings:
         missing.append("HA_TOKEN")
     if not ha_light_entity_id:
         missing.append("HA_LIGHT_ENTITY_ID")
+    if not ha_ac_entity_id:
+        missing.append("HA_AC_ENTITY_ID")        
     if not zmq_sub_endpoint:
         missing.append("ZMQ_SUB_ENDPOINT")
 
@@ -47,6 +51,7 @@ def load_settings() -> Settings:
         ha_base_url=ha_base_url,
         ha_token=ha_token,
         ha_light_entity_id=ha_light_entity_id,
+        ha_ac_entity_id=ha_ac_entity_id,
         zmq_sub_endpoint=zmq_sub_endpoint,
     )
 

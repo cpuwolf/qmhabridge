@@ -37,4 +37,13 @@ class HomeAssistantClient:
         payload = {"entity_id": entity_id}
         self._post("/api/services/switch/turn_off", json=payload)
 
+    def turn_on_ac(self, entity_id: str) -> None:
+        """Call AC.turn_on service for given entity."""
+        payload = {"entity_id": entity_id, "hvac_mode": "cool"}
+        self._post("/api/services/climate/set_hvac_mode", json=payload)
+
+    def turn_off_ac(self, entity_id: str) -> None:
+        """Call AC.turn_off service for given entity."""
+        payload = {"entity_id": entity_id, "hvac_mode": "off"}
+        self._post("/api/services/climate/set_hvac_mode", json=payload)
 
