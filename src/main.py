@@ -42,7 +42,32 @@ def close_zmq_connection(context: zmq.Context, socket: zmq.Socket) -> None:
         socket.close(0)
     finally:
         context.term()
+        
+def process_pack_message(payload_bytes: list[bytes], ha: HomeAssistantClient, settings) -> None:
+    # 按照 C 结构体解码 payload_bytes
+    onoff = False
+    if len(payload_bytes) < 1:
+        logging.warning("PackEventData 长度不足 1 字节，忽略。len=%d", len(payload_bytes))
+        return
+    try:
+        onoff = struct.unpack('?', payload_bytes)[0]
+        payload_preview = f"pack onoff={bool(onoff)}"
+        logging.info("收到 PackEvent，内容=%s", payload_preview)
+    except Exception as ex:
+        payload_preview = payload_bytes.hex()
+        logging.warning("解码 PackEventData 失败: %s", ex)
+        return
 
+    # 触发 HA 开灯
+    try:
+        if onoff:
+            ha.turn_on_ac(settings.ha_ac_entity_id)
+            logging.info("已请求 HA 打开空调：%s", settings.ha_ac_entity_id)
+        else:
+            ha.turn_off_ac(settings.ha_ac_entity_id)
+            logging.info("已请求 HA 关闭空调：%s", settings.ha_ac_entity_id)
+    except Exception as ex:
+        logging.exception("调用 HA 失败: %s", ex)
 
 def process_message(frames: list[bytes], ha: HomeAssistantClient, settings) -> None:
     """处理接收到的消息"""
@@ -55,14 +80,18 @@ def process_message(frames: list[bytes], ha: HomeAssistantClient, settings) -> N
         return
 
     msg_id, payload_len = struct.unpack('<ii', header_buf[:8])
-    ZMQQ_KEYEVENT_ID = 0x07324D6E
+    
     ZMQQHeartBeat_ID = 0x07324d6d
+    ZMQQ_KEYEVENT_ID = 0x07324D6E
+    ZMQQ_PACKEVENT_ID = 0x07324D6F
     
     if msg_id == ZMQQHeartBeat_ID:
         logging.debug("收到心跳")
         return
+    elif msg_id == ZMQQ_PACKEVENT_ID:
+        logging.debug("空调消息 ID: 0x%08X", msg_id)
     elif msg_id != ZMQQ_KEYEVENT_ID:
-        logging.debug("忽略未知消息 ID: 0x%08X", msg_id)
+        logging.warning("忽略未知消息 ID: 0x%08X", msg_id)
         return
 
     # 拼接 payload（可能部分在首帧 8 字节之后，剩余在后续帧）
@@ -75,13 +104,17 @@ def process_message(frames: list[bytes], ha: HomeAssistantClient, settings) -> N
             logging.warning("负载长度不足，期望=%d 实际=%d，忽略。", payload_len, len(concat_rest))
             return
         payload_bytes = concat_rest[:payload_len]
+    
+    if msg_id == ZMQQ_PACKEVENT_ID:
+        process_pack_message(payload_bytes, ha, settings)
+        return
 
     # 按照 C 结构体解码 payload_bytes
     qid = 0
     key = 0
     isrelease = False
-    if len(payload_bytes) < 9:
-        logging.warning("KeyEventData 长度不足 9 字节，忽略。len=%d", len(payload_bytes))
+    if len(payload_bytes) < 12:
+        logging.warning("KeyEventData 长度不足 12 字节，忽略。len=%d", len(payload_bytes))
         return
     try:
         qid, key, isrelease = struct.unpack('<iii', payload_bytes[:12])
@@ -102,6 +135,7 @@ def process_message(frames: list[bytes], ha: HomeAssistantClient, settings) -> N
                 ha.turn_off_light(settings.ha_light_entity_id)
                 logging.info("已请求 HA 关闭灯光：%s", settings.ha_light_entity_id)
         if qid == 9 and key == 0x22: #PACK 1
+            return
             if isrelease:
                 ha.turn_on_ac(settings.ha_ac_entity_id)
                 logging.info("已请求 HA 打开空调：%s", settings.ha_ac_entity_id)
